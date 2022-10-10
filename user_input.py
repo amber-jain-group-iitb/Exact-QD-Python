@@ -33,9 +33,12 @@ def pot(x):
 ## User defined initial wavefunction
 def init_psi(n,xgrid):
     psi=np.zeros(2*n,dtype=np.complex)
+    ## Initial momentum value
     k=np.sqrt(2*mass*0.03)
     sigma=1.0
+    ## psi(t=0)=N exp((x-x0)**2/sigma**2) . e(ikx)
     for i in range(n):
         psi[i]=np.exp(-(xgrid[i]+5)**2/(sigma**2)) * np.exp(1.j*k*xgrid[i])
+    ## Normalizing the wavefunction
     psi=psi/np.sqrt(np.vdot(psi,psi))
     return(psi)
