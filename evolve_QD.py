@@ -1,3 +1,7 @@
+## Code to perform numerically exact quantum dynamics by solving the eigen functions and energies of the full Hamiltonian.
+## Requires file user_input.py, that contains simulation parameters and function for the potential energy and initial conditions.
+## This code written specifically for a 2 level problem coupled to a coordinate x.
+
 import numpy as np
 import matplotlib.pyplot as plt
 from user_input import *
