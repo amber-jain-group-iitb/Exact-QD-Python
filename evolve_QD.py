@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 from user_input import *
 
 #################################################################
-## Finds the Hamiltonian in a DVR basis
+## Constructs the Hamiltonian matrix in a DVR basis
 def construct_Hamiltonian(n,xgrid,mass):
     dq=xgrid[1]-xgrid[0]
     KE_dvr=np.zeros((n,n))
+    ## Kinetic energy in DVR basis. See Appendix A of Colbert and Miller JCP 96, 1982 (1991)
     for i in range(n):
         for j in range(n):
             KE_dvr[i,j] = hbar ** 2 / (2 * mass * dq ** 2) * (-1.0) ** (i - j)
@@ -20,15 +21,19 @@ def construct_Hamiltonian(n,xgrid,mass):
     V11=np.zeros(n)
     V22=np.zeros(n)
     UU=np.zeros((2,2,n))
+    ## Adding potential energy to the diagonal of the Hamiltonian matrix
     for i in range(n):
         V=pot(xgrid[i])
         Hamil[i,i]     += V[0,0]
         Hamil[i+n,i+n] += V[1,1]
         Hamil[i,i+n]   += V[0,1]
         Hamil[i+n,i]   += V[1,0]
+        ## Finding the adiabatic basis
         eig_en,eig_vec=np.linalg.eigh(V)
+        ## Adiabatic energies
         V11[i]=eig_en[0]
         V22[i]=eig_en[1]
+        ## Adiabatic to diabatic transformation matrix
         UU[:,:,i]=eig_vec
 
     ## Plots the adiabatic potential energy surfaces
@@ -45,34 +50,16 @@ def construct_Hamiltonian(n,xgrid,mass):
     return (Hamil,UU)
 #################################################################
 
-## Finds eigen-fns and eigen-energies for the full Hamiltonian
+## Finds eigen-fns and eigen-energies for the full Hamiltonian (electronic+nuclear) H.eig_fn(x,i) = eig_en(i).eig_fn(x,i)
+## Uses inbuilt Python library np.linalg.eigh to find the eigen vectors/values.
 def find_eigen_soln():
     Hamil,UU=construct_Hamiltonian(ndvr,xgrid,mass)
     eig_en,eig_vec=np.linalg.eigh(Hamil)
     return(eig_en,eig_vec,UU)
 #################################################################
 
-## Calculates adiabatic density matrix psi_ad and traces over the position to get a 2x2 rho matrix
-def compute_rho(psi,UU):
-    rho=np.zeros((2,2),dtype=complex)
-    chi_ad=np.zeros(2,dtype=complex)
-    chi_d=np.zeros(2,dtype=complex)
-    psi_ad=np.zeros(2*ndvr,dtype=complex)
-    for i in range(ndvr):
-      chi_d[0]=psi[i]
-      chi_d[1]=psi[i+ndvr]
-      chi_ad=np.transpose(UU[:,:,i])@chi_d
-      psi_ad[i]=chi_ad[0]
-      psi_ad[i+ndvr]=chi_ad[1]
-
-      rho[0,0]+=abs(chi_ad[0])**2
-      rho[1,1]+=abs(chi_ad[1])**2
-      rho[0,1]+=np.conj(chi_ad[0])*chi_ad[1]
-      rho[1,0]+=np.conj(chi_ad[1])*chi_ad[0]
-    return(rho,psi_ad)
-#################################################################
-
-## Calculates the expansion of the initial psi in terms of eigen-fns
+## Calculates the expansion of the initial psi in terms of eigen-fns:
+## ci[i]=<eig_fn(i)|psi(t=0)>
 def compute_ci(psi,eig_fn):
     ci=np.zeros(2*ndvr,dtype=complex)
     for i in range(2*ndvr):
@@ -81,13 +68,39 @@ def compute_ci(psi,eig_fn):
     return(ci)
 #################################################################
 
-## Evolves to time t
+## Evolves psi to time t. Note in this method, no time step dt is required. Evolution is numerically exact for any time t.
+## psi(x,t)=\sum_i c(i) e^(-i.t.eig_en(i)/hbar) eig_fn(x,i) 
+## where eig_fn(x,i) and eig_en(i) are the ith eigenfunctions of the total Hamiltonian: H.eig_fn(x,i) = eig_en(i).eig_fn(x,i)
+## c(i) are the quantum coefficients at t=0: c(i)=<eig_fn(i)|psi(t=0)>
 def evolve(ci,eig_en,eig_fn,t):
     psi=np.zeros(2*ndvr,dtype=complex)
     for i in range(2*ndvr):
         psi[:]+=ci[i]*eig_fn[:,i]*np.exp(-1.j*eig_en[i]*t/hbar)
     return(psi)
 #################################################################
+
+## Calculates adiabatic density matrix psi_ad and traces over the position to get a 2x2 electronic matrix rho in adiabatic basis
+def compute_rho(psi,UU):
+    rho=np.zeros((2,2),dtype=complex)
+    chi_ad=np.zeros(2,dtype=complex)
+    chi_d=np.zeros(2,dtype=complex)
+    psi_ad=np.zeros(2*ndvr,dtype=complex)
+    for i in range(ndvr):
+      chi_d[0]=psi[i]
+      chi_d[1]=psi[i+ndvr]
+      ## Transforms wavefunction from diabatic basis to adiabatic basis
+      chi_ad=np.transpose(UU[:,:,i])@chi_d
+      psi_ad[i]=chi_ad[0]
+      psi_ad[i+ndvr]=chi_ad[1]
+
+      ## Adiabatic electronic density matrix: rho[i,j] = <\chi_ad[i] | \chi_ad[j]>
+      rho[0,0]+=abs(chi_ad[0])**2
+      rho[1,1]+=abs(chi_ad[1])**2
+      rho[0,1]+=np.conj(chi_ad[0])*chi_ad[1]
+      rho[1,0]+=np.conj(chi_ad[1])*chi_ad[0]
+    return(rho,psi_ad)
+#################################################################
+
 
 ## Plotting parameters
 res=600
@@ -105,16 +118,19 @@ plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 #################################################################
 
+## Finds the numerically exact eigen functions and eigen values.
 eig_en,eig_fn,UU=find_eigen_soln()
 print("first five eigen values = ",eig_en[:5])
 
+## Sets the initial wave function provided by the user in the file user_input.py
 psi=init_psi(ndvr,xgrid)
 psi_init=psi
+## Calculates the expansion coefficients ci: psi(t=0) = psi(x,t=0)=\sum_i ci(i) eig_fn(x,i)
 ci=compute_ci(psi,eig_fn)
 
 max_y=np.max(abs(psi))
 
-## Evolve wavefunction for the user defined steps.
+## Evolve wavefunction for the user defined steps. Parametesr dt, total_time in the file user_input.py
 nsteps=int(total_time/dt)
 tim=np.zeros(nsteps)
 tim_sav=np.zeros(nsteps)
@@ -122,10 +138,10 @@ psi_sav=np.zeros((2*ndvr,nsteps),dtype=complex)
 rho=np.zeros((2,2,nsteps),dtype=complex)
 j=0
 for i in range(nsteps):
-    psi=evolve(ci,eig_en,eig_fn,i*dt)
-    rho[:,:,i],psi_ad=compute_rho(psi,UU)
+    psi=evolve(ci,eig_en,eig_fn,i*dt)           ## Evolves psi numerically exact to the time t
+    rho[:,:,i],psi_ad=compute_rho(psi,UU)       ## Calculates the adiabatic density matrix
     tim[i]=i*dt
-    ## Every nprint steps, plot the wavefunction
+    ## Every nprint steps, plot the wavefunction as a function of time to create a movie
     if(i%nprint==0):
         plt.clf()
         plt.subplot(2,1,1)
@@ -136,6 +152,8 @@ for i in range(nsteps):
         plt.ylim((0,max_y))
         plt.plot(xgrid,abs(psi_ad[:ndvr]))
         plt.pause(0.001)            ## Time between 2 frames
+
+    ## Every nprint steps, store the wavefunction 
     if(i%nsave==0):
       tim_sav[j]=i*dt
       psi_sav[:,j]=psi_ad
@@ -143,7 +161,7 @@ for i in range(nsteps):
 plt.show()
 ###########################################################
 
-## Plotting desnsity matrix (absolute values)
+## Plotting electronic desnsity matrix (absolute values)
 plt.plot(tim,abs(rho[0,0,:]),label=r'$\rho_{el}^{00}$')
 plt.plot(tim,abs(rho[1,1,:]),label=r'$\rho_{el}^{11}$')
 plt.plot(tim,abs(rho[0,1,:]),label=r'$|\rho_{el}^{01}|$')
@@ -156,7 +174,7 @@ plt.savefig("rho.png",dpi=res)
 plt.show()
 
 
-## Plots snapshots of the wavefunction after every nsave steps (nsave defined in user_input.py)
+## Plots snapshots of the wavefunction after every nsave steps (nsave defined in file user_input.py)
 for i in range(j):
   plt.subplot(2,j,i+1)
   plt.ylim((0,max_y))
