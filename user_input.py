@@ -1,3 +1,5 @@
+## This file contains user provided data/functions needed for numerically exact quantum dynamics performed in evolve_QD.py
+
 import numpy as np
 
 ## DVR grid ('position' basis)
