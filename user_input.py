@@ -23,7 +23,9 @@ nsave=20            ## Prints snapshots of the wavefunction every nsave steps
 ## Position grid
 xgrid=np.linspace(-10,25,ndvr)
 
+####################################################################################################################
 ## User defined potential as a function of coordinate x
+## Takes as input a real number x, and returns a 2x2 matrix V[2,2], which is the potential energy matrix at the provided x.
 def pot(x):
     V=np.zeros((2,2))
     V[0,0]=AA*np.tanh(BB*x)
@@ -32,6 +34,7 @@ def pot(x):
     V[1,0]=V[0,1]
     return(V)
 
+####################################################################################################################
 ## User defined initial wavefunction
 def init_psi(n,xgrid):
     psi=np.zeros(2*n,dtype=np.complex)
