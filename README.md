@@ -6,7 +6,7 @@ For time independent Hamiltonian,
 
 where eig_fn(x,i) and eig_en(i) are the ith eigenfunctions of the total Hamiltonian: H.eig_fn(x,i) = eig_en(i).eig_fn(x,i), and c(i) are the quantum coefficients at t=0: c(i)=<eig_fn(i)|psi(t=0)>
 
-eig_fn and eig_en computed by constructing the Hamiltonian in a DVR basis and thereafter diagonalizing the Hamiltonian matrix using inbuilt Python libraries. This code is specifically written for only a 2 level problem coupled to 1 coordinate x.
+eig_fn and eig_en computed by constructing the Hamiltonian in a DVR basis and thereafter diagonalizing the Hamiltonian matrix using inbuilt Python libraries. This code is specifically written for only a 2 level problem coupled to 1 coordinate x. This approach will be limited to a handful of coordinates x.
 
 Running the codes:
   - Download both evolve_QD.py and user_input.py in the same location.
